@@ -7,6 +7,12 @@ def fan_ws(request_string, url):
 	ws_output = requests.post(url=url, data=request_string)
 	return ws_output
 
+def get_response(dict_request):
+	dict_json = json.dumps(dict_request)
+	url_response = fan_ws(dict_json, url)
+	url_result = json.loads(url_response.text)
+	return url_result
+
 # Get SessionID
 session_dict = {
 	'cmd': 'create_session',
@@ -14,15 +20,12 @@ session_dict = {
 	'password': pass_ws
 }
 
-session_request = json.dumps(session_dict)
-session_response = fan_ws(session_request, url)
-session_id = json.loads(session_response.text)['SESSIONID']
+session_id = get_response(session_dict)['SESSIONID']
 print('Session ID:', session_id)
 
 # Fan parameters to test
 article_no = '115510/A01'
-qv = 2500
-psf = 200
+qv, psf= 2500, 200
 
 # Fan request
 fan_dict = {
@@ -44,7 +47,5 @@ fan_dict = {
 	'full_octave_band': 'true'
 }
 
-fan_request = json.dumps(fan_dict)
-fan_response = fan_ws(fan_request, url)
-value = json.loads(fan_response.text)['POWER_INPUT_KW']
+value = get_response(fan_dict)['POWER_INPUT_KW']
 print('Power input kW:', value)
