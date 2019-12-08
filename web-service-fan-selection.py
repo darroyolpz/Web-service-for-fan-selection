@@ -1,7 +1,7 @@
 import json, requests
 
 url = "http://fanselect.net:8079/FSWebService"
-user_ws, pass_ws = 'XXX', 'XXX'
+user_ws, pass_ws = 'xxx', 'xxx'
 
 def fan_ws(request_string, url):	
 	ws_output = requests.post(url=url, data=request_string)
@@ -24,28 +24,46 @@ session_id = get_response(session_dict)['SESSIONID']
 print('Session ID:', session_id)
 
 # Fan parameters to test
-article_no = '115510/A01'
-qv, psf= 2500, 200
+article_no = '115683/A01'
+qv, psf= 28218, 752
+voltage, nominal_frequency = 230, 60
+
+# article_no = '115510/A01'
+# qv, psf= 2500, 200
+# voltage, nominal_frequency = 400, 50
+
+height, width = 1614, 2784
 
 # Fan request
 fan_dict = {
-	'username': user_ws,
-	'password': pass_ws,
 	'language': 'EN',
 	'unit_system': 'm',
+	'username': user_ws,
+	'password': pass_ws,
 	'cmd': 'select',
-	'article_no': article_no,
 	'cmd_param': '0',
-	'spec_products': 'PF_00',
-	'product_range': 'BR_01',
+	'zawall_mode': 'ZAWALL_PLUS',
+	'zawall_size': '4',
 	'qv': qv,
 	'psf': psf,
+	'spec_products': 'PF_00',
+	'article_no': article_no,
 	'current_phase': '3',
-	'voltage': '400',
-	'nominal_frequency': '50',
-	'sessionid': session_id,
-	'full_octave_band': 'true'
+	'voltage': voltage,
+	'nominal_frequency': nominal_frequency,
+	'installation_height_mm': height,
+	'installation_width_mm': width,
+	'installation_length_mm': '2000',
+	'installation_mode': 'RLT_2017',
+	'sessionid': session_id
 }
 
-value = get_response(fan_dict)['POWER_INPUT_KW']
-print('Power input kW:', value)
+try:
+	zawall_size = get_response(fan_dict)['ZAWALL_SIZE']
+	power_input = get_response(fan_dict)['ZA_PSYS']
+
+	print('Number of fans:', zawall_size)
+	print('Power input W:', power_input)
+	
+except:
+	print('No fan was found this time.')
