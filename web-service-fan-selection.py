@@ -1,5 +1,6 @@
-import json, requests
+import json, requests, time
 import pandas as pd
+from pandas import ExcelWriter
 
 url = "http://fanselect.net:8079/FSWebService"
 user_ws, pass_ws = 'xxx', 'xxx'
@@ -37,60 +38,103 @@ df = pd.read_excel(excel_file, dtype={'Item': str, 'Gross price': float})
 print(df.head())
 print('\n')
 
+# Open the quotation file
+excel_file = 'DATA_INPUT.xlsx'
+df_data = pd.read_excel(excel_file, dtype={'Line':int, 'AHU':object, 'Height':object, 'Width':object, 'Ref':object,
+	'Voltage':object, 'Airflow':object, 'Static Press.':object})
+
+print(df_data.head())
+print('\n')
+
 inner_list, outter_list = [], []
 
-# Fan parameters to test
-qv, psf= 28218, 752
-height, width = 1614, 2784
-article_no = '115683/A01'
+# Check execution time
+start_time = time.time()
 
-# Loop for the code
-for i in range(len(df['Item'])):
-	for n in range(1, 7):
+for j in range(len(df_data['Line'])):
+	line = df_data['Line'].iloc[j]
+	ahu = df_data['AHU'].iloc[j]
+	ref = df_data['Ref'].iloc[j]
+	height = df_data['Height'].iloc[j]
+	width = df_data['Width'].iloc[j]
+	qv = df_data['Airflow'].iloc[j]
+	psf = df_data['Static Press.'].iloc[j]
 
-		# Set values
-		article_no = df['Item'].iloc[i]
-		gross_price = df['Gross price'].iloc[i]
+	time.sleep(2)
 
-		# Fan request
-		fan_dict = {
-			'language': 'EN',
-			'unit_system': 'm',
-			'username': user_ws,
-			'password': pass_ws,
-			'cmd': 'select',
-			'cmd_param': '0',
-			'zawall_mode': 'ZAWALL_PLUS',
-			'zawall_size': n,
-			'qv': qv,
-			'psf': psf,
-			'spec_products': 'PF_00',
-			'article_no': article_no,
-			'current_phase': '3',
-			'voltage': '230',
-			'nominal_frequency': '60',
-			'installation_height_mm': height,
-			'installation_width_mm': width,
-			'installation_length_mm': '2000',
-			'installation_mode': 'RLT_2017',
-			'sessionid': session_id
-		}
+	# Loop for fans on each number of line
+	for i in range(len(df['Item'])):
+		# Check several fan configuration
+		for n in range(1, 10):
 
-		try:
-			no_fans = get_response(fan_dict)['ZAWALL_SIZE']
+			# Set values
+			article_no = df['Item'].iloc[i]
+			gross_price = df['Gross price'].iloc[i]
+			print(line)
 
-			print('Fan found:', article_no)
-			print('Number of fans:', no_fans)
+			# Fan request
+			fan_dict = {
+				'language': 'EN',
+				'unit_system': 'm',
+				'username': user_ws,
+				'password': pass_ws,
+				'cmd': 'select',
+				'cmd_param': '0',
+				'zawall_mode': 'ZAWALL_PLUS',
+				'zawall_size': n,
+				'qv': qv,
+				'psf': psf,
+				'spec_products': 'PF_00',
+				'article_no': article_no,
+				'current_phase': '3',
+				'voltage': '230',
+				'nominal_frequency': '60',
+				'installation_height_mm': height,
+				'installation_width_mm': width,
+				'installation_length_mm': '2000',
+				'installation_mode': 'RLT_2017',
+				'sessionid': session_id
+			}
+
+			print(fan_dict)
 			print('\n')
 
-			total_gross = no_fans*gross_price
+			try:
+				no_fans = get_response(fan_dict)['ZAWALL_SIZE']
 
-			inner_list.append([article_no, no_fans, total_gross])
+				print('Number of line:', line)
+				print('Fan found:', article_no)
+				print('Number of fans:', no_fans)
+				print('\n')
 
-			#power_input = get_response(fan_dict)['ZA_PSYS']
-			#print('Power input W:', power_input)
-			
-		except:
-			pass
+				total_gross = no_fans*gross_price
 
-print(sort_function(inner_list, 2))
+				inner_list.append([line, ahu, ref, qv, psf, article_no, no_fans, total_gross])
+
+				# Stop the loop
+				print('Loop stopping!')
+				break
+
+				#power_input = get_response(fan_dict)['ZA_PSYS']
+				#print('Power input W:', power_input)
+				
+			except:
+				pass
+
+	print("--- %s seconds ---" % (time.time() - start_time))
+	print('\n')
+	print(sort_function(inner_list, 7))
+
+	# Once checked all the items and gathered the entire list, get the cheapest one
+	outter_list.append(inner_list[0])
+	inner_list = []
+
+# Save all the results to a new dataframe
+col = ['Line', 'AHU', 'Ref', 'Airflow', 'Static Press.', 'article_no', 'no_fans', 'total_gross']
+result = pd.DataFrame(outter_list, columns = col)
+
+# Export to Excel
+name = 'Results.xlsx'
+writer = pd.ExcelWriter(name)
+result.to_excel(writer, index = False)
+writer.save()
