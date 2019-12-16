@@ -60,7 +60,7 @@ for j in range(len(df_data['Line'])):
 	qv = df_data['Airflow'].iloc[j]
 	psf = df_data['Static Press.'].iloc[j]
 
-	time.sleep(2)
+	time.sleep(1)
 
 	# Loop for fans on each number of line
 	for i in range(len(df['Item'])):
@@ -70,7 +70,7 @@ for j in range(len(df_data['Line'])):
 			# Set values
 			article_no = df['Item'].iloc[i]
 			gross_price = df['Gross price'].iloc[i]
-			print(line)
+			print('Line:', line)
 
 			# Fan request
 			fan_dict = {
@@ -100,37 +100,39 @@ for j in range(len(df_data['Line'])):
 			print('\n')
 
 			try:
-				no_fans = get_response(fan_dict)['ZAWALL_SIZE']
+				#no_fans = get_response(fan_dict)['ZAWALL_SIZE']
+				power_input = get_response(fan_dict)['ZA_PSYS']
+				zawall_arr = get_response(fan_dict)['ZAWALL_ARRANGEMENT']
+				no_fans = 1 if zawall_arr == 0 else int(zawall_arr[:2])
 
 				print('Number of line:', line)
 				print('Fan found:', article_no)
+				print('Power input W:', power_input)
 				print('Number of fans:', no_fans)
 				print('\n')
 
 				total_gross = no_fans*gross_price
 
-				inner_list.append([line, ahu, ref, qv, psf, article_no, no_fans, total_gross])
+				inner_list.append([line, ahu, height, width, ref, qv, psf, article_no, no_fans, total_gross])
 
 				# Stop the loop
 				print('Loop stopping!')
+				print('\n')
 				break
-
-				#power_input = get_response(fan_dict)['ZA_PSYS']
-				#print('Power input W:', power_input)
 				
 			except:
 				pass
 
 	print("--- %s seconds ---" % (time.time() - start_time))
 	print('\n')
-	print(sort_function(inner_list, 7))
+	print(sort_function(inner_list, 9))
 
 	# Once checked all the items and gathered the entire list, get the cheapest one
 	outter_list.append(inner_list[0])
 	inner_list = []
 
 # Save all the results to a new dataframe
-col = ['Line', 'AHU', 'Ref', 'Airflow', 'Static Press.', 'article_no', 'no_fans', 'total_gross']
+col = ['Line', 'AHU', 'Height', 'Width', 'Ref', 'Airflow', 'Static Press.', 'article_no', 'no_fans', 'total_gross']
 result = pd.DataFrame(outter_list, columns = col)
 
 # Export to Excel
