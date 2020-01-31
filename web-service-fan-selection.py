@@ -35,14 +35,26 @@ print('\n')
 excel_file = 'EC_FANS.xlsx'
 df = pd.read_excel(excel_file, dtype={'Item': str, 'Gross price': float})
 
+print('List of fans:')
 print(df.head())
 print('\n')
 
 # Open the quotation file
 excel_file = 'DATA_INPUT.xlsx'
-df_data = pd.read_excel(excel_file, dtype={'Line':int, 'AHU':object, 'Height':object, 'Width':object, 'Ref':object,
-	'Voltage':object, 'Airflow':object, 'Static Press.':object})
+df_data = pd.read_excel(excel_file)
 
+# AHU size for merge
+excel_file = 'AHU_SIZE.xlsx'
+df_size = pd.read_excel(excel_file)
+
+# Merge operation
+df_data = pd.merge(df_data, df_size, on='AHU')
+cols = ['Height', 'Width', 'Airflow', 'Static Press.']
+
+for col in cols:
+	df_data[col] = df_data[col].astype(str)
+
+print('Data input:')
 print(df_data.head())
 print('\n')
 
@@ -87,8 +99,8 @@ for j in range(len(df_data['Line'])):
 				'spec_products': 'PF_00',
 				'article_no': article_no,
 				'current_phase': '3',
-				'voltage': '230',
-				'nominal_frequency': '60',
+				'voltage': '400',
+				'nominal_frequency': '50',
 				'installation_height_mm': height,
 				'installation_width_mm': width,
 				'installation_length_mm': '2000',
