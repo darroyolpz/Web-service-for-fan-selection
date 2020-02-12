@@ -3,10 +3,11 @@ import pandas as pd
 from pandas import ExcelWriter
 
 url = "http://fanselect.net:8079/FSWebService"
-user_ws, pass_ws = 'xxx', 'xxx'
+user_ws, pass_ws = 'ZAFS58738', '7ary17'
+power_factor = 1.04
 
 # Get all the possible fans
-all_results = True
+all_results = False
 
 def fan_ws(request_string, url):	
 	ws_output = requests.post(url=url, data=request_string)
@@ -45,6 +46,11 @@ print('\n')
 # Open the quotation file
 excel_file = 'DATA_INPUT.xlsx'
 df_data = pd.read_excel(excel_file)
+# We need to know the W, not the kW
+df_data['Consump. kW'] = 1000*df_data['Consump. kW']
+df_data['ID'] = df_data['Motor Power'].astype(str) + '-' + df_data['RPM'].astype(str)
+#print(df_data.head())
+#df_data = pd.merge(df_data, df, how='right', on='ID')
 
 # AHU size for merge
 excel_file = 'AHU_SIZE.xlsx'
@@ -74,12 +80,14 @@ for j in range(len(df_data['Line'])):
 	width = df_data['Width'].iloc[j]
 	qv = df_data['Airflow'].iloc[j]
 	psf = df_data['Static Press.'].iloc[j]
+	consump = df_data['Consump. kW'].iloc[j]
+	original_no_fans = df_data['No fans'].iloc[j]
 
 	time.sleep(1)
 
 	# Loop for fans on each number of line
 	for i in range(len(df['Item'])):
-		max_array = 4
+		max_array = original_no_fans + 1
 		# Check several fan configuration
 		for n in range(1, max_array):
 
@@ -118,29 +126,31 @@ for j in range(len(df_data['Line'])):
 			try:
 				#no_fans = get_response(fan_dict)['ZAWALL_SIZE']
 				power_input = get_response(fan_dict)['ZA_PSYS']
-				zawall_arr = get_response(fan_dict)['ZAWALL_ARRANGEMENT']
-				no_fans = 1 if zawall_arr == 0 else int(zawall_arr[:2])
-				n_actual = get_response(fan_dict)['ERP_N_ACTUAL']
-				n_stat = get_response(fan_dict)['ERP_N_STAT']
-				n_target = get_response(fan_dict)['ERP_N_TRAGET']
-				total_gross = no_fans*gross_price
 
-				print('Number of line:', line)
-				print('Fan found:', article_no)
-				print('Power input W:', power_input)
-				print('Eff. N_actual:', n_actual)
-				print('Eff. N_stat:', n_stat)
-				print('Eff. N_target:', n_target)
-				print('Number of fans:', no_fans)
-				print('Total gross:', total_gross)
-				print('\n')
+				if power_input <= (consump*power_factor):
+					zawall_arr = get_response(fan_dict)['ZAWALL_ARRANGEMENT']
+					no_fans = 1 if zawall_arr == 0 else int(zawall_arr[:2])
+					n_actual = get_response(fan_dict)['ERP_N_ACTUAL']
+					n_stat = get_response(fan_dict)['ERP_N_STAT']
+					n_target = get_response(fan_dict)['ERP_N_TRAGET']
+					total_gross = no_fans*gross_price
 
-				inner_list.append([line, ahu, height, width, ref, qv, psf, power_input, n_stat, n_target, article_no, no_fans, total_gross])
+					print('Number of line:', line)
+					print('Fan found:', article_no)
+					print('Power input W:', power_input)
+					print('Eff. N_actual:', n_actual)
+					print('Eff. N_stat:', n_stat)
+					print('Eff. N_target:', n_target)
+					print('Number of fans:', no_fans)
+					print('Total gross:', total_gross)
+					print('\n')
 
-				# Stop the loop
-				print('Loop stopping!')
-				print('\n')
-				break
+					inner_list.append([line, ahu, height, width, ref, qv, psf, power_input, n_stat, n_target, article_no, no_fans, total_gross])
+
+					# Stop the loop
+					print('Loop stopping!')
+					print('\n')
+					break
 				
 			except:
 				pass
