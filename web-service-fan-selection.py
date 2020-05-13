@@ -3,7 +3,7 @@ import pandas as pd
 from pandas import ExcelWriter
 
 url = "http://fanselect.net:8079/FSWebService"
-user_ws, pass_ws = 'ZAFS58738', '7ary17'
+user_ws, pass_ws = 'xxx', 'xxx'
 power_factor = 1.04
 
 # Get all the possible fans
